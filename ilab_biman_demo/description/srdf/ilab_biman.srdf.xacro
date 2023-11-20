@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ilab_biman">
+
+
+  <xacro:include filename="$(find ilab_ur_description)/srdf/ilab_ur_macro.srdf.xacro" />
+  <xacro:include filename="$(find ilab_ur_description)/srdf/flexicart.xacro" />
+
+  <xacro:ilab_ur_macro name="ur" prefix="" />
+  <xacro:ur_flexicart arm_id="ur"/>
+
+  <xacro:include filename="$(find ilab_franka_description)/srdf/flexicart.xacro"/>
+  <xacro:franka_flexicart arm_id="franka"/>
+
+  <xacro:include filename="$(find ilab_franka_description)/srdf/franka_arm.xacro"/>
+  <xacro:franka_arm arm_id="franka"/>
+
+  <xacro:if value="$(arg hand)">
+    <xacro:include filename="$(find ilab_franka_description)/srdf/hand.xacro"/>
+    <xacro:hand arm_id="franka"/>
+
+    <xacro:include filename="$(find ilab_franka_description)/srdf/franka_arm_hand.xacro"/>
+    <xacro:franka_arm_hand arm_id="franka"/>
+  </xacro:if>
+
+</robot>
