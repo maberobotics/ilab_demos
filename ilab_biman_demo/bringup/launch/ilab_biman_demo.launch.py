@@ -52,6 +52,76 @@ def generate_launch_description():
         'robot_description_semantic': robot_description_semantic_content
     }
 
+    # Get planning parameters
+    robot_description_planning_joint_limits = PathJoinSubstitution([
+            FindPackageShare('ilab_biman_demo'), "description/moveit2", "joint_limits.yaml",
+        ]
+    )
+
+    robot_description_planning_cartesian_limits = PathJoinSubstitution([
+            FindPackageShare('ilab_biman_demo'), "description/moveit2", "pilz_cartesian_limits.yaml",
+        ]
+    )
+
+    move_group_capabilities = {
+        "capabilities": """pilz_industrial_motion_planner/MoveGroupSequenceAction \
+            pilz_industrial_motion_planner/MoveGroupSequenceService \
+            move_group/ExecuteTaskSolutionCapability"""
+    }
+
+    robot_description_kinematics = PathJoinSubstitution(
+        [FindPackageShare('ilab_biman_demo'), "description/moveit2", "kinematics.yaml"]
+    )
+
+    planning_pipelines_config = PathJoinSubstitution([
+            FindPackageShare('ilab_biman_demo'), "description/moveit2", "planning_pipelines_config.yaml",
+        ]
+    )
+
+    ompl_planning_config = PathJoinSubstitution([
+            FindPackageShare('ilab_biman_demo'), "description/moveit2", "ompl_planning.yaml",
+        ]
+    )
+
+    moveit_controllers = PathJoinSubstitution(
+        [FindPackageShare('ilab_biman_demo'),
+            "description/moveit2", "moveit_controllers.yaml"]
+    )
+
+    trajectory_execution = {
+        "moveit_manage_controllers": True,
+        "trajectory_execution.allowed_execution_duration_scaling": 1.2,
+        "trajectory_execution.allowed_goal_duration_margin": 0.5,
+        "trajectory_execution.allowed_start_tolerance": 0.01,
+    }
+
+    planning_scene_monitor_parameters = {
+        "publish_planning_scene": True,
+        "publish_geometry_updates": True,
+        "publish_state_updates": True,
+        "publish_transforms_updates": True,
+    }
+
+    move_group_node = Node(
+        package="moveit_ros_move_group",
+        executable="move_group",
+        output="screen",
+        parameters=[
+            robot_description,
+            robot_description_semantic,
+            robot_description_kinematics,
+            robot_description_planning_cartesian_limits,
+            robot_description_planning_joint_limits,
+            planning_pipelines_config,
+            ompl_planning_config,
+            trajectory_execution,
+            moveit_controllers,
+            planning_scene_monitor_parameters,
+            move_group_capabilities,
+            {"use_sim_time": False},
+        ],
+    )
+
     rviz_config_file = PathJoinSubstitution(
         [FindPackageShare('ilab_biman_demo'), "bringup/config", "ilab_biman_demo.rviz"]
     )
@@ -81,6 +151,15 @@ def generate_launch_description():
         name="rviz2",
         output="log",
         arguments=["-d", rviz_config_file],
+        parameters=[
+            robot_description,
+            robot_description_semantic,
+            robot_description_planning_cartesian_limits,
+            planning_pipelines_config,
+            ompl_planning_config,
+            robot_description_kinematics,
+            moveit_controllers,
+        ],
     )
 
     # gripper_launch_file = IncludeLaunchDescription(
@@ -140,6 +219,7 @@ def generate_launch_description():
         robot_state_publisher_node,
         rviz_node,
         # gripper_launch_file,
+        move_group_node
     ]
 
     return LaunchDescription(nodes_to_start)
