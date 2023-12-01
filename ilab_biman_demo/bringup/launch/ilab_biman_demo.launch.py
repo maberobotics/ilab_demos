@@ -17,6 +17,8 @@ from launch import LaunchDescription
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 
@@ -30,12 +32,39 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [FindPackageShare('ilab_biman_demo'), 'description/urdf', 'ilab_biman.urdf.xacro']
             ),
-            " use_fake_hardware:=true",
+            " use_fake_hardware:=false",
+            " use_sim:=false",
+        ]
+    )
+
+    ur_robot_description_content = Command(
+        [
+            PathJoinSubstitution([FindExecutable(name='xacro')]),
+            ' ',
+            PathJoinSubstitution(
+                [FindPackageShare('ilab_biman_demo'), 'description/urdf', 'ilab_biman_ur.urdf.xacro']
+            ),
+            " use_fake_hardware:=false",
+            " use_sim:=false",
+        ]
+    )
+
+    franka_robot_description_content = Command(
+        [
+            PathJoinSubstitution([FindExecutable(name='xacro')]),
+            ' ',
+            PathJoinSubstitution(
+                [FindPackageShare('ilab_biman_demo'), 'description/urdf', 'ilab_biman_franka.urdf.xacro']
+            ),
+            " use_fake_hardware:=false",
             " use_sim:=false",
         ]
     )
 
     robot_description = {'robot_description': robot_description_content}
+    ur_robot_description = {'robot_description': ur_robot_description_content}
+    franka_robot_description = {'robot_description': franka_robot_description_content}
+
 
     # Get SRDF via xacro
     robot_description_semantic_content = Command(
@@ -135,7 +164,7 @@ def generate_launch_description():
         executable='joint_state_publisher',
         name='joint_state_publisher',
         parameters=[
-            {'source_list': ['/robots/joint_states', '/franka_gripper/joint_states'], 'rate': 30}],
+            {'source_list': ['/franka/joint_states', '/ur/joint_states', '/franka_gripper/joint_states'], 'rate': 30}],
     )
 
     robot_state_publisher_node = Node(
@@ -162,64 +191,105 @@ def generate_launch_description():
         ],
     )
 
-    # gripper_launch_file = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([PathJoinSubstitution(
-    #         [FindPackageShare('ilab_franka_bringup'), 'launch', 'ilab_franka_gripper.launch.py'])]),
-    #     launch_arguments={'robot_ip': '0.0.0.0',
-    #                       'use_fake_hardware': 'true',
-    #                       'arm_id': 'franka'}.items(),
-    # )
+    gripper_launch_file = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([PathJoinSubstitution(
+            [FindPackageShare('ilab_franka_bringup'), 'launch', 'ilab_franka_gripper.launch.py'])]),
+        launch_arguments={'robot_ip': '172.16.0.2',
+                          'use_fake_hardware': 'false',
+                          'arm_id': 'franka'}.items(),
+    )
 
-    control_node = Node(
+    franka_control_node = Node(
       package='controller_manager',
       executable='ros2_control_node',
-      parameters=[robot_description, robot_controllers],
+      name='franka_controller_manager',
+      parameters=[franka_robot_description, robot_controllers],
       output='both',
-      remappings=[('/joint_states', '/robots/joint_states')],
+      remappings=[('/joint_states', '/franka/joint_states')],
+    )
+
+    ur_control_node = Node(
+      package='controller_manager',
+      executable='ros2_control_node',
+      name='ur_controller_manager',
+      parameters=[ur_robot_description, robot_controllers],
+      output='both',
+      remappings=[('/joint_states', '/ur/joint_states')],
     )
 
     ur_robot_controller_spawner = Node(
       package='controller_manager',
       executable='spawner',
-      arguments=['ur_scaled_joint_trajectory_controller']
+      arguments=['ur_scaled_joint_trajectory_controller', '-c', 'ur_controller_manager']
     )
 
-    joint_state_broadcaster_spawner = Node(
+    ur_joint_state_broadcaster_spawner = Node(
       package='controller_manager',
       executable='spawner',
-      arguments=['joint_state_broadcaster']
+      arguments=['joint_state_broadcaster', '-c', 'ur_controller_manager']
     )
 
     ur_gripper_controller_spawner = Node(
       package='controller_manager',
       executable='spawner',
-      arguments=['ur_gripper_controller']
+      arguments=['ur_gripper_controller', '-c', 'ur_controller_manager']
     )
 
     franka_robot_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['franka_arm_controller']
+        arguments=['franka_arm_controller', '-c', 'franka_controller_manager']
     )
 
     franka_gripper_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['franka_hand_controller']
+        arguments=['franka_hand_controller', '-c', 'franka_controller_manager']
+    )
+
+    franka_joint_state_broadcaster_spawner = Node(
+      package='controller_manager',
+      executable='spawner',
+      arguments=['joint_state_broadcaster', '-c', 'franka_controller_manager']
+    )
+
+    tool_communication_node = Node(
+        package="ur_robot_driver",
+        executable="tool_communication.py",
+        name="ur_tool_comm",
+        output="screen",
+        parameters=[
+            {
+                "robot_ip": '172.16.0.3',
+                "tcp_port": 54321,
+                "device_name": "/tmp/ttyUR",
+            }
+        ],
+    )
+
+    urscript_interface = Node(
+        package="ur_robot_driver",
+        executable="urscript_interface",
+        parameters=[{"robot_ip": '172.16.0.3'}],
+        output="screen",
     )
 
     nodes_to_start = [
-        control_node,
+        franka_control_node,
+        ur_control_node,
         ur_robot_controller_spawner,
-        joint_state_broadcaster_spawner,
+        ur_joint_state_broadcaster_spawner,
+        franka_joint_state_broadcaster_spawner,
         ur_gripper_controller_spawner,
         franka_robot_controller_spawner,
-        franka_gripper_controller_spawner,
+        # franka_gripper_controller_spawner,
         joint_state_publisher,
         robot_state_publisher_node,
         rviz_node,
-        # gripper_launch_file,
-        move_group_node
+        gripper_launch_file,
+        move_group_node,
+        tool_communication_node,
+        urscript_interface
     ]
 
     return LaunchDescription(nodes_to_start)

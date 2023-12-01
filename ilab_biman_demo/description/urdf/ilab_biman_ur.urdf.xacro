@@ -5,28 +5,21 @@
   <xacro:include filename="$(find ilab_ur_description)/urdf/robotiq_2f_140_macro.urdf.xacro" />
   <xacro:include filename="$(find ilab_ur_description)/urdf/ur_to_robotiq_adapter.urdf.xacro" />
   <xacro:include filename="$(find ilab_ur_description)/urdf/flexicart.xacro"/>
-  <xacro:include filename="$(find ilab_franka_description)/urdf/franka_robot.xacro"/>
-  <xacro:include filename="$(find ilab_franka_description)/ros2_control/ilab_franka.ros2_control.xacro"/>
 
   <xacro:arg name="use_fake_hardware" default="true" />
   <xacro:arg name="use_sim" default="false" />
 
   <!-- Base frame -->
   <xacro:arg name="ur_base_frame_file" default="$(find ilab_biman_demo)/bringup/config/ur_base_frame.yaml" />
-  <xacro:arg name="franka_base_frame_file" default="$(find ilab_biman_demo)/bringup/config/franka_base_frame.yaml" />
   <xacro:property name="ur_base_frame_file" value="$(arg ur_base_frame_file)"/>
-  <xacro:property name="franka_base_frame_file" value="$(arg franka_base_frame_file)"/>
   
   <xacro:property name="ur_base_frame" value="${xacro.load_yaml(ur_base_frame_file)['base_frame']}"/>
-  <xacro:property name="franka_base_frame" value="${xacro.load_yaml(franka_base_frame_file)['base_frame']}"/>
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
   <xacro:arg name="ur_initial_positions_file" default="$(find ilab_ur_description)/config/initial_positions.yaml" />
-  <xacro:arg name="franka_initial_positions_file" default="$(find ilab_franka_description)/config/initial_positions.yaml" />
 
   <!-- convert to property to use substitution in function -->
   <xacro:property name="ur_initial_positions_file" default="$(arg ur_initial_positions_file)" />
-  <xacro:property name="franka_initial_positions_file" default="$(arg franka_initial_positions_file)" />
 
   <!-- create link fixed to the "world" -->
   <link name="world" />
@@ -36,13 +29,6 @@
     connected_to="world" 
     xyz="${ur_base_frame['x']} ${ur_base_frame['y']} ${ur_base_frame['z']}"
     rpy="${ur_base_frame['roll']} ${ur_base_frame['pitch']} ${ur_base_frame['yaw']}"
-  />
-
-  <xacro:flexicart
-    ns="franka"
-    connected_to="world" 
-    xyz="${franka_base_frame['x']} ${franka_base_frame['y']} ${franka_base_frame['z']}"
-    rpy="${franka_base_frame['roll']} ${franka_base_frame['pitch']} ${franka_base_frame['yaw']}"
   />
 
   <!-- UR robot -->
@@ -101,43 +87,5 @@
     use_fake_hardware="$(arg use_fake_hardware)">
     <origin xyz="0 0 0" rpy="0 0 0" />
   </xacro:robotiq_gripper>
-
-  <!-- Franka robot -->
-  <xacro:franka_robot 
-    arm_id="franka"
-    joint_limits="${xacro.load_yaml('$(find ilab_franka_description)/urdf/joint_limits.yaml')}"
-    hand="true"
-    gazebo="$(arg use_sim)"
-    parent="franka_flexicart_robot_base"
-    tcp_xyz="0 0 0.1034"
-    tcp_rpy="0 0 0"
-    xyz='0 0 0'
-    rpy='0 0 1.5707'
-    namespace="/"
-  />
-
-  <xacro:franka_arm_ros2_control 
-    ns="franka"
-    robot_ip='172.16.0.2'
-    use_fake_hardware="$(arg use_fake_hardware)"
-    use_sim="$(arg use_sim)"
-    fake_sensor_commands="false"
-  />
-
-   <xacro:if value="$(arg use_sim)">
-    <!-- Gazebo plugins -->
-    <gazebo reference="world">
-    </gazebo>
-    <gazebo>
-      <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
-        <robot_param_node>/robot_state_publisher</robot_param_node>
-        <parameters>$(find ilab_ur_description)/config/controllers.yaml</parameters>
-        <!-- <ros>
-          <remapping>/joint_states:=/ur/joint_states</remapping>
-        </ros> -->
-      </plugin>
-    </gazebo>
-  </xacro:if>
-
 
 </robot>

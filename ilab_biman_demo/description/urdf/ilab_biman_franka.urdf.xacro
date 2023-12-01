@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="ilab_biman">
+  <!-- import main macro -->
+  <xacro:include filename="$(find ilab_ur_description)/urdf/flexicart.xacro"/>
+  <xacro:include filename="$(find ilab_franka_description)/urdf/franka_robot.xacro"/>
+  <xacro:include filename="$(find ilab_franka_description)/ros2_control/ilab_franka.ros2_control.xacro"/>
+
+  <xacro:arg name="use_fake_hardware" default="true" />
+  <xacro:arg name="use_sim" default="false" />
+
+  <!-- Base frame -->
+  <xacro:arg name="franka_base_frame_file" default="$(find ilab_biman_demo)/bringup/config/franka_base_frame.yaml" />
+  <xacro:property name="franka_base_frame_file" value="$(arg franka_base_frame_file)"/>
+  
+  <xacro:property name="franka_base_frame" value="${xacro.load_yaml(franka_base_frame_file)['base_frame']}"/>
+
+  <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
+  <xacro:arg name="franka_initial_positions_file" default="$(find ilab_franka_description)/config/initial_positions.yaml" />
+
+  <!-- convert to property to use substitution in function -->
+  <xacro:property name="franka_initial_positions_file" default="$(arg franka_initial_positions_file)" />
+
+  <!-- create link fixed to the "world" -->
+  <link name="world" />
+
+  <xacro:flexicart
+    ns="franka"
+    connected_to="world" 
+    xyz="${franka_base_frame['x']} ${franka_base_frame['y']} ${franka_base_frame['z']}"
+    rpy="${franka_base_frame['roll']} ${franka_base_frame['pitch']} ${franka_base_frame['yaw']}"
+  />
+
+  <!-- Franka robot -->
+  <xacro:franka_robot 
+    arm_id="franka"
+    joint_limits="${xacro.load_yaml('$(find ilab_franka_description)/urdf/joint_limits.yaml')}"
+    hand="true"
+    gazebo="$(arg use_sim)"
+    parent="franka_flexicart_robot_base"
+    tcp_xyz="0 0 0.1034"
+    tcp_rpy="0 0 0"
+    xyz='0 0 0'
+    rpy='0 0 1.5707'
+    namespace="/"
+  />
+
+  <xacro:franka_arm_ros2_control 
+    ns="franka"
+    robot_ip='172.16.0.2'
+    use_fake_hardware="$(arg use_fake_hardware)"
+    use_sim="$(arg use_sim)"
+    fake_sensor_commands="false"
+  />
+
+</robot>
