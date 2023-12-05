@@ -155,8 +155,12 @@ def generate_launch_description():
         [FindPackageShare('ilab_biman_demo'), "bringup/config", "ilab_biman_demo.rviz"]
     )
 
-    robot_controllers = PathJoinSubstitution(
-      [FindPackageShare('ilab_biman_demo'), 'bringup/config', 'controllers.yaml']
+    ur_robot_controllers = PathJoinSubstitution(
+      [FindPackageShare('ilab_biman_demo'), 'bringup/config', 'ur_controllers.yaml']
+    )
+
+    franka_robot_controllers = PathJoinSubstitution(
+      [FindPackageShare('ilab_biman_demo'), 'bringup/config', 'franka_controllers.yaml']
     )
 
     joint_state_publisher = Node(
@@ -202,55 +206,55 @@ def generate_launch_description():
     franka_control_node = Node(
       package='controller_manager',
       executable='ros2_control_node',
-      name='franka_controller_manager',
-      parameters=[franka_robot_description, robot_controllers],
+      namespace='franka',
+      parameters=[franka_robot_description, franka_robot_controllers],
       output='both',
-      remappings=[('/joint_states', '/franka/joint_states')],
+    #   remappings=[('/joint_states', '/franka/joint_states')],
     )
 
     ur_control_node = Node(
       package='controller_manager',
       executable='ros2_control_node',
-      name='ur_controller_manager',
-      parameters=[ur_robot_description, robot_controllers],
+      namespace='ur',
+      parameters=[ur_robot_description, ur_robot_controllers],
       output='both',
-      remappings=[('/joint_states', '/ur/joint_states')],
+    #   remappings=[('/joint_states', '/ur/joint_states')],
     )
 
     ur_robot_controller_spawner = Node(
       package='controller_manager',
       executable='spawner',
-      arguments=['ur_scaled_joint_trajectory_controller', '-c', 'ur_controller_manager']
+      arguments=['ur_scaled_joint_trajectory_controller', '-c', 'ur/controller_manager']
     )
 
     ur_joint_state_broadcaster_spawner = Node(
       package='controller_manager',
       executable='spawner',
-      arguments=['joint_state_broadcaster', '-c', 'ur_controller_manager']
+      arguments=['ur_joint_state_broadcaster', '-c', 'ur/controller_manager']
     )
 
     ur_gripper_controller_spawner = Node(
       package='controller_manager',
       executable='spawner',
-      arguments=['ur_gripper_controller', '-c', 'ur_controller_manager']
+      arguments=['ur_gripper_controller', '-c', 'ur/controller_manager']
     )
 
     franka_robot_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['franka_arm_controller', '-c', 'franka_controller_manager']
+        arguments=['franka_arm_controller', '-c', 'franka/controller_manager']
     )
 
     franka_gripper_controller_spawner = Node(
         package='controller_manager',
         executable='spawner',
-        arguments=['franka_hand_controller', '-c', 'franka_controller_manager']
+        arguments=['franka_hand_controller', '-c', 'franka/controller_manager']
     )
 
     franka_joint_state_broadcaster_spawner = Node(
       package='controller_manager',
       executable='spawner',
-      arguments=['joint_state_broadcaster', '-c', 'franka_controller_manager']
+      arguments=['franka_joint_state_broadcaster', '-c', 'franka/controller_manager']
     )
 
     tool_communication_node = Node(

@@ -11,14 +11,14 @@
 
     moveit_simple_controller_manager:
       controller_names:
-        - franka_arm_controller
+        - franka/franka_arm_controller
         - franka_gripper
         # - franka_hand_controller
-        - ur_scaled_joint_trajectory_controller
+        - ur/ur_scaled_joint_trajectory_controller
         # - ur_joint_trajectory_controller
-        - ur_gripper_controller
+        - ur/ur_gripper_controller
 
-      franka_arm_controller:
+      franka/franka_arm_controller:
         action_ns: follow_joint_trajectory
         type: FollowJointTrajectory
         default: true
@@ -39,14 +39,14 @@
           - franka_finger_joint1
           - franka_finger_joint2
 
-      franka_hand_controller:
+      franka/franka_hand_controller:
         action_ns: gripper_cmd
         default: true
         type: GripperCommand
         joints:
           - franka_finger_joint1
 
-      ur_scaled_joint_trajectory_controller:
+      ur/ur_scaled_joint_trajectory_controller:
         action_ns: follow_joint_trajectory
         type: FollowJointTrajectory
         default: true
@@ -59,7 +59,7 @@
           - wrist_3_joint
 
 
-      ur_joint_trajectory_controller:
+      ur/ur_joint_trajectory_controller:
         action_ns: follow_joint_trajectory
         type: FollowJointTrajectory
         default: false
@@ -71,7 +71,7 @@
           - wrist_2_joint
           - wrist_3_joint
 
-      ur_gripper_controller:
+      ur/ur_gripper_controller:
         type: GripperCommand
         action_ns: gripper_cmd
         default: true
