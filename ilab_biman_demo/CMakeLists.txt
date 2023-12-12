@@ -9,7 +9,16 @@ endif()
 find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(moveit_visual_tools REQUIRED)
+
+add_executable(ilab_biman_demo_pick_and_place src/ilab_biman_demo_pick_and_place_node.cpp)
+ament_target_dependencies(ilab_biman_demo_pick_and_place rclcpp moveit_ros_planning_interface moveit_visual_tools)
+
+install(TARGETS
+  ilab_biman_demo_pick_and_place
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
